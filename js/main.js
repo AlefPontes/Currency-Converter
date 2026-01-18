@@ -1,4 +1,5 @@
 import { getCurrencyNames, getMoedas } from "./api.js";
+import { ApiError, InternetError } from "./error.js";
 
 const fromCurrency = document.querySelector("#from-currency");
 const toCurrency = document.querySelector("#to-currency");
@@ -11,10 +12,17 @@ const loaderContainer = document.querySelector(".loader");
 let multiplier = 1;
 
 async function updateMultiplier() {
-  const newMultiplier = await getMoedas(fromCurrency.value, toCurrency.value);
-  console.log(newMultiplier);
-  multiplier = newMultiplier;
-  console.log(multiplier);
+  try {
+    multiplier = await getMoedas(fromCurrency.value, toCurrency.value);
+  } catch (error) {
+    multiplier = null;
+
+    if (error instanceof ApiError) {
+      showApiError();
+    } else if (error instanceof InternetError) {
+      showNetworkError();
+    }
+  }
 }
 
 async function renderCountries() {
@@ -33,26 +41,34 @@ async function renderCountries() {
 }
 
 async function renderValue() {
-  if (Number.isNaN(multiplier) || multiplier === undefined) {
+  if (multiplier === null || Number.isNaN(multiplier)) {
     loaderContainer.classList.add("loader-hidden");
-    throwError();
-  } else {
-    valueText.classList.remove("error");
-
-    const convertedValue = Number(amount.value * multiplier).toFixed(2);
-    const formatedValue = new Intl.NumberFormat().format(convertedValue);
-
-    valueText.innerText = `${formatedValue} ${toCurrency.value}`;
-    bidText.innerText = `1 ${fromCurrency.value} = ${multiplier.toFixed(2)} ${
-      toCurrency.value
-    }`;
-    bidText.classList.remove("hidden");
-    loaderContainer.classList.add("loader-hidden");
+    showApiError();
+    return;
   }
+
+  valueText.classList.remove("error");
+
+  const convertedValue = Number(amount.value * multiplier).toFixed(2);
+  const formatedValue = new Intl.NumberFormat().format(convertedValue);
+
+  valueText.innerText = `${formatedValue} ${toCurrency.value}`;
+  bidText.innerText = `1 ${fromCurrency.value} = ${multiplier.toFixed(2)} ${
+    toCurrency.value
+  }`;
+  bidText.classList.remove("hidden");
+  loaderContainer.classList.add("loader-hidden");
 }
 
-function throwError() {
+function showApiError() {
   valueText.innerText = "Não foi possível realizar a cotação dessa moeda.";
+  valueText.classList.add("error");
+  bidText.classList.add("hidden");
+}
+
+function showNetworkError() {
+  valueText.innerText =
+    "Erro de conexão. Verifique sua internet.";
   valueText.classList.add("error");
   bidText.classList.add("hidden");
 }
