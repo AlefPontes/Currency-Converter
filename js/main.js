@@ -1,5 +1,7 @@
-import { getCurrencyNames, getMoedas } from "./api.js";
+import { convert } from "./converter.js";
 import { ApiError, InternetError } from "./error.js";
+import { getCurrencyNames } from "./apiRequest.js";
+import { sortArray } from "./utils.js";
 
 const fromCurrency = document.querySelector("#from-currency");
 const toCurrency = document.querySelector("#to-currency");
@@ -13,7 +15,7 @@ let multiplier = 1;
 
 async function updateMultiplier() {
   try {
-    multiplier = await getMoedas(fromCurrency.value, toCurrency.value);
+    multiplier = await convert(fromCurrency.value, toCurrency.value);
   } catch (error) {
     multiplier = null;
 
@@ -26,7 +28,7 @@ async function updateMultiplier() {
 }
 
 async function renderCountries() {
-  const availableCurrencys = await getCurrencyNames();
+  const availableCurrencys = sortArray(await getCurrencyNames());
 
   availableCurrencys.forEach(([sigla, moeda]) => {
     const option = document.createElement("option");
@@ -67,8 +69,7 @@ function showApiError() {
 }
 
 function showNetworkError() {
-  valueText.innerText =
-    "Erro de conexão. Verifique sua internet.";
+  valueText.innerText = "Erro de conexão. Verifique sua internet.";
   valueText.classList.add("error");
   bidText.classList.add("hidden");
 }
